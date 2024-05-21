@@ -78,7 +78,7 @@ const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes 
           // td.textContent = 'É uma hashTable';
         } else {
           // Caso contrário, apenas atribua o valor normalmente
-          td.textContent = truncateString(element[chave],15);
+          td.textContent = element[chave] ? truncateString(element[chave], 15) : "Sem informação";
         }
 
         tr.appendChild(td);

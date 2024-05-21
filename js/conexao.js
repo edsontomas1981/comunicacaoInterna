@@ -76,9 +76,6 @@ function transformarEmListaDeListas(data) {
   
 
 const populaCi = (dados)=>{
-
-  console.log(dados)
-
   let isca1 = document.getElementById('isca1')
   let isca2 = document.getElementById('isca2')
   let manifesto = document.getElementById('numManifesto')
@@ -89,7 +86,6 @@ const populaCi = (dados)=>{
   let observacao = document.getElementById('observacao')
   let rota = document.getElementById('rota')
 
-
   isca1.value = dados.isca_1
   isca2.value = dados.isca_2
   manifesto.value = dados.manifesto_numero
@@ -99,7 +95,28 @@ const populaCi = (dados)=>{
   dataCi.value = dados.data
   observacao.value = dados.observacao
   rota.value = dados.percurso
+}
 
+const limpaForm = ()=>{
+    let isca1 = document.getElementById('isca1')
+    let isca2 = document.getElementById('isca2')
+    let manifesto = document.getElementById('numManifesto')
+    let frete = document.getElementById('freteValor')
+    let destinatario = document.getElementById('destinatario')
+    let motorista = document.getElementById('motorista')
+    let dataCi = document.getElementById('dataCi')
+    let observacao = document.getElementById('observacao')
+    let rota = document.getElementById('rota')
+    
+    isca1.value = ''
+    isca2.value = ''
+    manifesto.value = ''
+    destinatario.value = ''
+    frete.value = ''
+    motorista.value = ''
+    dataCi.value = ''
+    observacao.value = ''
+    rota.value = ''
 }
 
 document.addEventListener('DOMContentLoaded',async ()=>{
@@ -108,11 +125,20 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
     const carregaTbody = async ()=>{
 
-    // Obter todas as comunicações
-    var dados = await apiService.getAll('comunicacoes')
-      .then(data => transformarEmListaDeListas(data))
-      .catch(error => console.error('Error:', error))
-      popula_tbody_paginacao('paginacao','dadosCi',dados,{},1,20,false)
+        let botoes={
+            print: {
+                classe: "btn btn-danger text-white",
+                texto: 'Apagar',
+                // callback: btnRemoveMotorista
+              }
+          }; 
+
+        // Obter todas as comunicações
+        var dados = await apiService.getAll('comunicacoes')
+        .then(data => transformarEmListaDeListas(data))
+        .catch(error => console.error('Error:', error))
+
+        popula_tbody_paginacao('paginacao','dadosCi',dados,{},1,20,false)
 
     }
 
@@ -125,6 +151,12 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         .then(data => populaCi(data))
         .catch(error => console.error('Error:', error));
     })
+
+    const verificaSalvar= (dados)=>{
+        console.log(dados)
+        carregaTbody()
+        limpaForm()
+    }
 
     let btnSalvar = document.getElementById('salvar')
     btnSalvar.addEventListener('click',()=>{
@@ -150,11 +182,10 @@ document.addEventListener('DOMContentLoaded',async ()=>{
           isca_1: isca1.value,
           isca_2: isca2.value
       };
-      apiService.create('comunicacao', newComunicacao)
-          .then(data => carregaTbody())
-          .catch(error => console.error('Error:', error));
-
-          })
+    apiService.create('comunicacao', newComunicacao)
+        .then(data => verificaSalvar(data))
+        .catch(error => console.error('Error:', error));
+    })
 })
 
 
