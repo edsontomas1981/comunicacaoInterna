@@ -19,7 +19,7 @@ def get_comunicacoes():
     conn = get_db_connection()
     
     # Executa a consulta SQL e retorna todas as linhas da tabela comunicacao_interna
-    comunicacoes = conn.execute('SELECT * FROM comunicacao_interna').fetchall()
+    comunicacoes = conn.execute('SELECT * FROM comunicacao_interna ORDER BY ci_num DESC').fetchall()
     
     # Fecha a conexão com o banco de dados
     conn.close()
@@ -39,23 +39,34 @@ def get_comunicacao(ci_num):
 @app.route('/comunicacao', methods=['POST'])
 def create_comunicacao():
     data = request.get_json()
-    destinatario = data['destinatario']
-    manifesto_numero = data['manifesto_numero']
-    motorista = data['motorista']
-    valor_frete = data['valor_frete']
-    percurso = data['percurso']
-    data_comunicacao = data['data']
-    observacao = data['observacao']
-    isca_1 = data['isca_1']
-    isca_2 = data['isca_2']
+    destinatario = data.get('destinatario')
+    manifesto_numero = data.get('manifesto_numero')
+    motorista = data.get('motorista')
+    valor_frete = data.get('valor_frete')
+    percurso = data.get('percurso')
+    data_comunicacao = data.get('data')
+    observacao = data.get('observacao')
+    isca_1 = data.get('isca_1')
+    isca_2 = data.get('isca_2')
 
     conn = get_db_connection()
-    conn.execute('INSERT INTO comunicacao_interna (destinatario, manifesto_numero, motorista, valor_frete, percurso, data, observacao, isca_1, isca_2) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    cursor = conn.cursor()  # Obtém um cursor para executar consultas
+    cursor.execute('''INSERT INTO comunicacao_interna 
+                      (destinatario, manifesto_numero, motorista, valor_frete, percurso, data, observacao, isca_1, isca_2) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                  (destinatario, manifesto_numero, motorista, valor_frete, percurso, data_comunicacao, observacao, isca_1, isca_2))
+
+    comunicacao_id = cursor.lastrowid  # Obtém o ID do registro inserido
     conn.commit()
+
+    # Busca o registro recém-inserido pelo ID
+    cursor.execute('SELECT * FROM comunicacao_interna WHERE id = ?', (comunicacao_id,))
+    nova_comunicacao = cursor.fetchone()
+
     conn.close()
 
-    return jsonify({'status': 'Comunicação criada com sucesso'}), 201
+    # Retorna o registro como JSON junto com a mensagem de sucesso
+    return jsonify({'status': 'Comunicação criada com sucesso', 'comunicacao': nova_comunicacao}), 201
 
 @app.route('/comunicacao/<int:ci_num>', methods=['PUT'])
 def update_comunicacao(ci_num):

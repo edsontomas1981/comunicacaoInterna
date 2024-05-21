@@ -75,18 +75,90 @@ function transformarEmListaDeListas(data) {
   }
   
 
+const populaCi = (dados)=>{
+
+  console.log(dados)
+
+  let isca1 = document.getElementById('isca1')
+  let isca2 = document.getElementById('isca2')
+  let manifesto = document.getElementById('numManifesto')
+  let frete = document.getElementById('freteValor')
+  let destinatario = document.getElementById('destinatario')
+  let motorista = document.getElementById('motorista')
+  let dataCi = document.getElementById('dataCi')
+  let observacao = document.getElementById('observacao')
+  let rota = document.getElementById('rota')
+
+
+  isca1.value = dados.isca_1
+  isca2.value = dados.isca_2
+  manifesto.value = dados.manifesto_numero
+  destinatario.value = dados.destinatario
+  frete.value = dados.valor_frete
+  motorista.value = dados.motorista
+  dataCi.value = dados.data
+  observacao.value = dados.observacao
+  rota.value = dados.percurso
+
+}
+
 document.addEventListener('DOMContentLoaded',async ()=>{
     // Exemplo de uso:
     const apiService = new ApiService('http://localhost:5000');
 
+    const carregaTbody = async ()=>{
+
     // Obter todas as comunicações
     var dados = await apiService.getAll('comunicacoes')
-        .then(data => transformarEmListaDeListas(data))
-        .catch(error => console.error('Error:', error))
+      .then(data => transformarEmListaDeListas(data))
+      .catch(error => console.error('Error:', error))
+      popula_tbody_paginacao('paginacao','dadosCi',dados,{},1,20,false)
 
+    }
 
-    popula_tbody_paginacao('paginacao','dadosCi',dados,{},1,20,false,false)
+    carregaTbody()
+
+    let btnBuscar = document.getElementById('buscar')
+    btnBuscar.addEventListener('click',()=>{
+      // Obter uma comunicação por ID
+      apiService.getById('comunicacao', document.getElementById('ciNum').value)
+        .then(data => populaCi(data))
+        .catch(error => console.error('Error:', error));
+    })
+
+    let btnSalvar = document.getElementById('salvar')
+    btnSalvar.addEventListener('click',()=>{
+
+      let isca1 = document.getElementById('isca1')
+      let isca2 = document.getElementById('isca2')
+      let manifesto = document.getElementById('numManifesto')
+      let frete = document.getElementById('freteValor')
+      let destinatario = document.getElementById('destinatario')
+      let motorista = document.getElementById('motorista')
+      let dataCi = document.getElementById('dataCi')
+      let observacao = document.getElementById('observacao')
+      let rota = document.getElementById('rota')
+      // Criar uma nova comunicação
+      const newComunicacao = {
+          destinatario: destinatario.value,
+          manifesto_numero: manifesto.value,
+          motorista: motorista.value,
+          valor_frete: frete.value,
+          percurso: rota.value,
+          data: dataCi.value,
+          observacao: observacao.value,
+          isca_1: isca1.value,
+          isca_2: isca2.value
+      };
+      apiService.create('comunicacao', newComunicacao)
+          .then(data => carregaTbody())
+          .catch(error => console.error('Error:', error));
+
+          })
 })
+
+
+
 
 
 
@@ -96,21 +168,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 //     .then(data => console.log(data))
 //     .catch(error => console.error('Error:', error));
 
-// // Criar uma nova comunicação
-// const newComunicacao = {
-//     destinatario: "João",
-//     manifesto_numero: "12345",
-//     motorista: "Carlos",
-//     valor_frete: 150.0,
-//     percurso: "São Paulo - Rio",
-//     data: "2024-05-20",
-//     observacao: "Entrega urgente",
-//     isca_1: "Sim",
-//     isca_2: "Não"
-// };
-// apiService.create('comunicacao', newComunicacao)
-//     .then(data => console.log(data))
-//     .catch(error => console.error('Error:', error));
+
 
 // // Atualizar uma comunicação existente
 // const updatedComunicacao = {

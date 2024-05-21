@@ -50,9 +50,7 @@ const createPaginationButton = (iconClass, page, totalPages, isActive = false, d
  * @param {number} [paginaAtual=1] - O número da página atual (padrão é 1).
  * @param {number} [itensPorPagina=10] - O número de itens a serem exibidos por página (padrão é 10).
  */
-const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes = {}, paginaAtual = 1, itensPorPagina = 10,addCheckbox = true,dadosAdicionais = false) => {
-    console.log('Rotas:', dados);
-    console.log('Botoes Coletas:', botoes);
+const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes = {}, paginaAtual = 1, itensPorPagina = 10,dadosAdicionais = false) => {
 
   // Calcula o índice inicial e final dos dados a serem exibidos na página atual
   const startIndex = (paginaAtual - 1) * itensPorPagina;
@@ -69,16 +67,6 @@ const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes 
   dadosPaginados.forEach(element => { 
     var tr = document.createElement("tr");
     tr.setAttribute('data-id', element.id);
-    if (addCheckbox){
-      // Adiciona o checkbox como o primeiro campo
-      var tdCheckbox = document.createElement("td");
-      var checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.name = "selecao";
-      tdCheckbox.appendChild(checkbox);
-      tr.appendChild(tdCheckbox);
-    }
-
     // Loop através do dicionário de dados para criar as células <td> dinamicamente
     for (const chave in element) {
       if (element.hasOwnProperty(chave)) {
@@ -140,7 +128,7 @@ const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes 
   paginationContainer.className = "pagination flex-wrap";
 
   // Adiciona botão "Anterior" à paginação
-  const previousButton = createPaginationButton("ti-angle-left", paginaAtual - 1, totalPages, false, divParaNavegacao, id_tbody, dados, botoes, itensPorPagina);
+  const previousButton = createPaginationButton("fa fa-arrow-left", paginaAtual - 1, totalPages, false, divParaNavegacao, id_tbody, dados, botoes, itensPorPagina);
   paginationContainer.appendChild(previousButton);
 
   // Adiciona botões numéricos à paginação
@@ -150,7 +138,7 @@ const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes 
   }
 
   // Adiciona botão "Próximo" à paginação
-  const nextButton = createPaginationButton("ti-angle-right", paginaAtual + 1, totalPages, false, divParaNavegacao, id_tbody, dados, botoes, itensPorPagina);
+  const nextButton = createPaginationButton("fa fa-arrow-right", paginaAtual + 1, totalPages, false, divParaNavegacao, id_tbody, dados, botoes, itensPorPagina);
   paginationContainer.appendChild(nextButton);
 
   // Adiciona o elemento de paginação à div de navegação
