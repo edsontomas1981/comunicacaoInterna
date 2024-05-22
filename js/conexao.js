@@ -37,7 +37,10 @@ class ApiService {
 
     async delete(endpoint, id) {
         const response = await fetch(`${this.baseUrl}/${endpoint}/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
         return this.handleResponse(response);
     }
@@ -48,6 +51,70 @@ class ApiService {
             throw new Error(error);
         }
         return response.json();
+    }
+}
+
+
+const formataDataPtBr = (dataString)=>{
+  
+    const dataObj = new Date(dataString);
+    // Usando 'pt-BR' para obter o formato brasileiro
+    const formatoBrasileiro = new Intl.DateTimeFormat('pt-BR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  
+    return formatoBrasileiro.format(dataObj);
+  }
+
+const BASEURL = "http://127.0.0.1:5000";
+
+class Conn {
+    constructor(url, data) {
+        this.url = BASEURL + url;
+        this.data = data;
+    }
+
+    getCSRFToken = async () => {
+        try {
+            const response = await fetch(BASEURL+'/produtos/api/get_csrf_token/', {
+                method: 'GET',
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.csrf_token;
+        } catch (error) {
+            console.error(error);
+            return null;
+        }
+    };
+    
+
+    async sendPostRequest(url, data) {
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Success:', data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
     }
 }
 
@@ -75,6 +142,14 @@ function transformarEmListaDeListas(data) {
   }
   
 
+function formatarData(dataString) {
+    const partesData = dataString.split('/');
+    const dia = partesData[0];
+    const mes = partesData[1];
+    const ano = partesData[2];
+    return `${ano}-${mes}-${dia}`;
+}
+
 const populaCi = (dados)=>{
   let isca1 = document.getElementById('isca1')
   let isca2 = document.getElementById('isca2')
@@ -85,16 +160,18 @@ const populaCi = (dados)=>{
   let dataCi = document.getElementById('dataCi')
   let observacao = document.getElementById('observacao')
   let rota = document.getElementById('rota')
+  let idNumCi = document.getElementById('idCiNum')
 
   isca1.value = dados.isca_1
   isca2.value = dados.isca_2
   manifesto.value = dados.manifesto_numero
   destinatario.value = dados.destinatario
-  frete.value = dados.valor_frete
+  frete.value = dados.valor_frete.toFixed(2)
   motorista.value = dados.motorista
-  dataCi.value = dados.data
+  dataCi.value = formatarData(dados.data)
   observacao.value = dados.observacao
   rota.value = dados.percurso
+  idNumCi.value = dados.ci_num
 }
 
 const limpaForm = ()=>{
@@ -120,25 +197,38 @@ const limpaForm = ()=>{
 }
 
 document.addEventListener('DOMContentLoaded',async ()=>{
+
+    const imprimirCi = async(element)=>{
+        apiService.getById('comunicacao', element)
+        .then(data => reportCi(data))
+        .catch(error => console.error('Error:', error));
+
+        // let conexao = new Conn('/print_comunicacao',{'ci_num':element})
+        // let dados = await conexao.sendPostRequest()
+        // console.log(dados)
+    } 
+
+
     // Exemplo de uso:
     const apiService = new ApiService('http://localhost:5000');
 
     const carregaTbody = async ()=>{
 
         let botoes={
-            print: {
-                classe: "btn btn-danger text-white",
-                texto: 'Apagar',
-                // callback: btnRemoveMotorista
+            print:{
+                classe: "btn btn-info text-white",
+                texto: '<i class="fa fa-print" aria-hidden="true"></i>',
+                callback: imprimirCi
               }
-          }; 
+            }
+         ; 
 
         // Obter todas as comunicações
         var dados = await apiService.getAll('comunicacoes')
         .then(data => transformarEmListaDeListas(data))
         .catch(error => console.error('Error:', error))
 
-        popula_tbody_paginacao('paginacao','dadosCi',dados,{},1,20,false)
+        popula_tbody_paginacao('paginacao','dadosCi',dados,botoes,1,20,false)
 
     }
 
@@ -157,6 +247,14 @@ document.addEventListener('DOMContentLoaded',async ()=>{
         carregaTbody()
         limpaForm()
     }
+
+    document.getElementById('excluir').addEventListener('click',()=>{
+        // Deletar uma comunicação
+        apiService.delete(document.getElementById('idCiNum').value, 1)
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+
+    })
 
     let btnSalvar = document.getElementById('salvar')
     btnSalvar.addEventListener('click',()=>{
@@ -217,7 +315,4 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 //     .then(data => console.log(data))
 //     .catch(error => console.error('Error:', error));
 
-// // Deletar uma comunicação
-// apiService.delete('comunicacao', 1)
-//     .then(data => console.log(data))
-//     .catch(error => console.error('Error:', error));
+

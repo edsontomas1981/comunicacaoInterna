@@ -65,8 +65,10 @@ const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes 
   limpa_tabelas(id_tbody);
 
   dadosPaginados.forEach(element => { 
+    console.log(element[0])
     var tr = document.createElement("tr");
-    tr.setAttribute('data-id', element.id);
+
+    tr.setAttribute('data-id', element[0]);
     // Loop através do dicionário de dados para criar as células <td> dinamicamente
     for (const chave in element) {
       if (element.hasOwnProperty(chave)) {
@@ -84,19 +86,14 @@ const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes 
         tr.appendChild(td);
       }
     }
-  
     // Adiciona botões personalizados se existirem na hash 'botoes'
     for (const nomeBotao in botoes) {
       if (botoes.hasOwnProperty(nomeBotao)) {
         var tdBotao = document.createElement("td");
         var btn = document.createElement("a");
-        btn.setAttribute('data-id', element.id);
+        btn.setAttribute('data-id', element[0]);
 
-        Object.entries(element.dadosAdicionais).forEach(([key, value]) => {
-          btn.setAttribute('data-'+key, value);
-          // Aqui você pode fazer o que precisar com cada chave e valor
-        });
-        btn.id = element.id;
+        btn.id = element[0];
         btn.className = "btn btn-sm " + botoes[nomeBotao].classe;
         btn.innerHTML = botoes[nomeBotao].texto;
   
@@ -104,7 +101,7 @@ const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes 
           // Use uma função anônima para passar o ID
           btn.onclick = function() {
             // Chame a função de callback passando o ID
-            botoes[nomeBotao].callback(element.id);
+            botoes[nomeBotao].callback(element[0]);
           };
         }
         tdBotao.appendChild(btn);
