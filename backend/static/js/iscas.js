@@ -1,4 +1,4 @@
-const BASEURL = "http://127.0.0.1:5000";
+const BASEURL = "https://comunicacao-interna.vercel.app/";
 
 class Conn {
     constructor(url, data) {
