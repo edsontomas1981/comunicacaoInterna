@@ -68,7 +68,8 @@ const formataDataPtBr = (dataString)=>{
     return formatoBrasileiro.format(dataObj);
   }
 
-const BASEURL = "https://comunicacao-interna.vercel.app/";
+  const isProduction = window.location.hostname !== 'localhost';
+  const BASEURL = isProduction ? 'https://comunicacao-interna.vercel.app/' : 'http://localhost:5000';
 
 class Conn {
     constructor(url, data) {

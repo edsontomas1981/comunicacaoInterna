@@ -1,4 +1,6 @@
-const BASEURL = "http://127.0.0.1:5000";
+const isProduction = window.location.hostname !== 'localhost';
+console.log(isProduction)
+const BASEURL = isProduction ? 'https://comunicacao-interna.vercel.app/' : 'http://localhost:5000';
 
 class Conn {
     constructor(url, data) {
