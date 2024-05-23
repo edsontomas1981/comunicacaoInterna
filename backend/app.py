@@ -5,8 +5,8 @@ import json
 from impressao_ci import imprimir_ci
 from iscas import localiza_iscas
 
-app = Flask(__name__, template_folder='..', static_folder='../js')
-CORS(app, resources={r"/*": {"origins": "*"}})
+
+app = Flask(__name__, template_folder='templates', static_folder='static')
 
 DATABASE = 'bd_norte.db'
 
@@ -26,7 +26,6 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
     return response
 
-# Handler para requisições OPTIONS
 @app.route('/<path:path>', methods=['OPTIONS'])
 def options_handler(path):
     response = jsonify({})
@@ -87,7 +86,7 @@ def create_comunicacao():
     cursor.execute('''INSERT INTO comunicacao_interna 
                       (destinatario, manifesto_numero, motorista, valor_frete, percurso, data, observacao, isca_1, isca_2) 
                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                 (destinatario, manifesto_numero, motorista, valor_frete, percurso, data_comunicacao, observacao, isca_1, isca_2))
+                   (destinatario, manifesto_numero, motorista, valor_frete, percurso, data_comunicacao, observacao, isca_1, isca_2))
 
     comunicacao_id = cursor.lastrowid
     conn.commit()

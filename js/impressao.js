@@ -1,23 +1,5 @@
-function getBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
- }
- 
- // Uso:
-//  const file = document.querySelector('input[type=file]').files[0];
-//  getBase64(file).then(data => console.log(data));
- 
-
-const { jsPDF } = window.jspdf;
-
-// // Substitua esta string com a Data URL gerada para sua imagem
-// const logoImage = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...'; // Encurtado para exemplo
-
 const reportCi = (dados) => {
+    const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -28,49 +10,45 @@ const reportCi = (dados) => {
     const centerX = pageWidth / 2;
 
     // Logo
-    doc.addImage('logonorte.jpg', 'JPEG', 10, 10, 50, 15);
+    const logoUrl = '/static/logonorte.jpg'; // Caminho da imagem servida pelo Flask
+    const loadImage = async (url) => {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        return new Promise((resolve) => {
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+        });
+    };
 
-    // Empresa e Detalhes
-    doc.setFontSize(12);
-    doc.text('SERAFIM TRANSPORTE DE CARGAS LTDA', centerX, 40, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text('Rua: Nova Veneza, 172 Cumbica – Guarulhos-SP', centerX, 45, { align: 'center' });
-    doc.text('Tel(11)2481-9121/2481-9697/2412-4886/2412-3927', centerX, 50, { align: 'center' });
+    loadImage(logoUrl).then((logoDataUrl) => {
+        doc.addImage(logoDataUrl, 'JPEG', 10, 10, 50, 15);
 
-    doc.setFontSize(12);
-    doc.text(`Comunicação Interna Nº ${dados.ci_num}`, centerX, 70, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Data: ${dados.data} Percurso: ${dados.percurso}`, centerX, 75, { align: 'center' });
-
-    doc.setFontSize(12);
-    doc.text(`${dados.destinatario},`, marginLeft, 90, { maxWidth });
-    doc.text(`Estamos enviando o manifesto de transporte de cargas nº ${dados.manifesto_numero}. Este manifesto inclui conhecimentos de frete.`, marginLeft, 100, { maxWidth });
-    doc.text(`De acordo com este manifesto, solicitamos o pagamento de ${dados.valor_frete} ao motorista ${dados.motorista}, referente à Ordem de Pagamento.`, marginLeft, 110, { maxWidth });
-
-    if (dados.isca_2 !== '') {
-        doc.text(`Além disso, incluímos as seguintes iscas de monitoramento: ${dados.isca_1} e ${dados.isca_2}.`, marginLeft, 120, { maxWidth });
-    } else {
-        doc.text(`Também incluímos a seguinte isca de monitoramento: ${dados.isca_1}.`, marginLeft, 120, { maxWidth });
-    }
-
-    if (dados.observacao !== '') {
+        // Restante do código para criar o PDF
         doc.setFontSize(12);
-        doc.text(`Observações:`, marginLeft, 140, { maxWidth });
+        doc.text('SERAFIM TRANSPORTE DE CARGAS LTDA', centerX, 40, { align: 'center' });
         doc.setFontSize(10);
-        doc.text(dados.observacao, marginLeft, 150, { maxWidth });
-    }
+        doc.text('Rua: Nova Veneza, 172 Cumbica – Guarulhos-SP', centerX, 45, { align: 'center' });
+        doc.text('Tel(11)2481-9121/2481-9697/2412-4886/2412-3927', centerX, 50, { align: 'center' });
 
-    // Assinaturas
-    doc.setFontSize(12);
-    doc.text('Assinatura da Empresa', marginLeft, 200);
-    doc.text('Assinatura do Motorista', marginLeft + 120, 200);
+        doc.setFontSize(12);
+        doc.text(`Comunicação Interna Nº ${dados.ci_num}`, centerX, 70, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text(`Data: ${dados.data} Percurso: ${dados.percurso}`, centerX, 75, { align: 'center' });
 
-    doc.setFontSize(10);
-    doc.text('SERAFIM TRANSPORTE DE CARGAS LTDA', marginLeft, 220);
-    doc.text(dados.motorista, marginLeft + 120, 220);
+        doc.setFontSize(12);
+        doc.text(`${dados.destinatario},`, marginLeft, 90, { maxWidth });
+        doc.text(`Enviamos anexo a esse CI o manifesto de nº ${dados.manifesto_numero} que será realizado pelo motorista ${dados.motorista}, referente ao período ${dados.percurso} para transporte de nossas mercadorias.`, marginLeft, 100, { maxWidth });
+        doc.text(`Valor do frete: ${dados.valor_frete}`, marginLeft, 110, { maxWidth });
+        doc.text(`Observações: ${dados.observacao}`, marginLeft, 120, { maxWidth });
+        doc.text(`Isca 1: ${dados.isca_1}`, marginLeft, 130, { maxWidth });
+        doc.text(`Isca 2: ${dados.isca_2}`, marginLeft, 140, { maxWidth });
 
-    // Abrir o PDF em uma nova aba
-    const pdfOutput = doc.output('blob');
-    const url = URL.createObjectURL(pdfOutput);
-    window.open(url);
+        // Abrir o PDF em uma nova aba
+        const pdfOutput = doc.output('blob');
+        const url = URL.createObjectURL(pdfOutput);
+        window.open(url);
+    }).catch(error => {
+        console.error('Erro ao carregar a imagem:', error);
+    });
 };
