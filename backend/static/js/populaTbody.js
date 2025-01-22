@@ -1,7 +1,6 @@
 const truncateString=(str, maxLength)=> {
   return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
 }
-
 /**
  * Cria um elemento de botão de paginação para ser usado em um componente de paginação.
  * @param {string} iconClass - A classe do ícone a ser exibido no botão (opcional).
@@ -65,9 +64,7 @@ const popula_tbody_paginacao = async (divParaNavegacao, id_tbody, dados, botoes 
   limpa_tabelas(id_tbody);
 
   dadosPaginados.forEach(element => { 
-    console.log(element[0])
     var tr = document.createElement("tr");
-
     tr.setAttribute('data-id', element[0]);
     // Loop através do dicionário de dados para criar as células <td> dinamicamente
     for (const chave in element) {

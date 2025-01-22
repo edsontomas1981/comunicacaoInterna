@@ -1,3 +1,5 @@
+const BASEURL = "http://192.168.15.42:5000";
+
 class ApiService {
     constructor(baseUrl) {
         this.baseUrl = baseUrl;
@@ -24,6 +26,17 @@ class ApiService {
         return this.handleResponse(response);
     }
 
+    async post(endpoint, data) {
+        const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        return this.handleResponse(response);
+    }
+
     async update(endpoint, id, data) {
         const response = await fetch(`${this.baseUrl}/${endpoint}/${id}`, {
             method: 'PUT',
@@ -37,23 +50,74 @@ class ApiService {
 
     async delete(endpoint, id) {
         const response = await fetch(`${this.baseUrl}/${endpoint}/${id}`, {
-            method: 'DELETE',
+            method: 'DELETE', // Corrigido para usar DELETE
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json' // Opcional para DELETE, mas mantém consistência
             }
         });
         return this.handleResponse(response);
     }
 
+    /**
+   * Método para buscar registros com filtros flexíveis.
+   * @param {string} endpoint - O endpoint da API.
+   * @param {Object} filters - Filtros para a busca.
+   * @returns {Promise<Object>} - Resultado da busca.
+   */
+    async search(endpoint, filters) {
+        const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(filters)
+        });
+        return this.handleResponse(response);
+    }
+
     async handleResponse(response) {
+        // Verifica se o conteúdo é um blob (arquivo)
+        const contentType = response.headers.get("Content-Type");
+        if (contentType && contentType.includes("application/zip")) {
+            return response.blob();  // Retorna o arquivo como blob
+        }
+
+        // Caso contrário, retorna como JSON
         if (!response.ok) {
             const error = await response.text();
             throw new Error(error);
         }
         return response.json();
     }
-}
 
+    /**
+     * Faz o download de um arquivo após um POST com dados.
+     * @param {string} endpoint - O endpoint para o qual o POST será feito.
+     * @param {Object} data - Dados que serão enviados no corpo do POST.
+     */
+    async downloadFile(endpoint, data) {
+        // Fazendo o POST com os dados
+        const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)  // Dados enviados no POST
+        });
+
+        // Obtém o arquivo como um Blob
+        const blob = await this.handleResponse(response);
+
+        // Cria um link para o download do arquivo
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'download.zip';  // Nome do arquivo que será baixado
+        document.body.appendChild(a);
+        a.click();  // Dispara o download
+        a.remove();  // Remove o link da página
+    }
+}
 
 const formataDataPtBr = (dataString)=>{
   
@@ -66,9 +130,8 @@ const formataDataPtBr = (dataString)=>{
     });
   
     return formatoBrasileiro.format(dataObj);
-  }
+}
 
-const BASEURL = "http://127.0.0.1:5000";
 
 class Conn {
     constructor(url, data) {
@@ -143,176 +206,9 @@ function transformarEmListaDeListas(data) {
   
 
 function formatarData(dataString) {
-    const partesData = dataString.split('/');
+    const partesData = dataString.split('-');
     const dia = partesData[0];
     const mes = partesData[1];
     const ano = partesData[2];
-    return `${ano}-${mes}-${dia}`;
+    return `${dia}-${mes}-${ano}`;
 }
-
-const populaCi = (dados)=>{
-  let isca1 = document.getElementById('isca1')
-  let isca2 = document.getElementById('isca2')
-  let manifesto = document.getElementById('numManifesto')
-  let frete = document.getElementById('freteValor')
-  let destinatario = document.getElementById('destinatario')
-  let motorista = document.getElementById('motorista')
-  let dataCi = document.getElementById('dataCi')
-  let observacao = document.getElementById('observacao')
-  let rota = document.getElementById('rota')
-  let idNumCi = document.getElementById('idCiNum')
-
-  isca1.value = dados.isca_1
-  isca2.value = dados.isca_2
-  manifesto.value = dados.manifesto_numero
-  destinatario.value = dados.destinatario
-  frete.value = dados.valor_frete.toFixed(2)
-  motorista.value = dados.motorista
-  dataCi.value = formatarData(dados.data)
-  observacao.value = dados.observacao
-  rota.value = dados.percurso
-  idNumCi.value = dados.ci_num
-}
-
-const limpaForm = ()=>{
-    let isca1 = document.getElementById('isca1')
-    let isca2 = document.getElementById('isca2')
-    let manifesto = document.getElementById('numManifesto')
-    let frete = document.getElementById('freteValor')
-    let destinatario = document.getElementById('destinatario')
-    let motorista = document.getElementById('motorista')
-    let dataCi = document.getElementById('dataCi')
-    let observacao = document.getElementById('observacao')
-    let rota = document.getElementById('rota')
-    
-    isca1.value = ''
-    isca2.value = ''
-    manifesto.value = ''
-    destinatario.value = ''
-    frete.value = ''
-    motorista.value = ''
-    dataCi.value = ''
-    observacao.value = ''
-    rota.value = ''
-}
-
-document.addEventListener('DOMContentLoaded',async ()=>{
-
-    const imprimirCi = async(element)=>{
-        apiService.getById('comunicacao', element)
-        .then(data => reportCi(data))
-        .catch(error => console.error('Error:', error));
-
-        // let conexao = new Conn('/print_comunicacao',{'ci_num':element})
-        // let dados = await conexao.sendPostRequest()
-        // console.log(dados)
-    } 
-
-
-    // Exemplo de uso:
-    const apiService = new ApiService('http://localhost:5000');
-
-    const carregaTbody = async ()=>{
-
-        let botoes={
-            print:{
-                classe: "btn btn-info text-white",
-                texto: '<i class="fa fa-print" aria-hidden="true"></i>',
-                callback: imprimirCi
-              }
-            }
-         ; 
-
-        // Obter todas as comunicações
-        var dados = await apiService.getAll('comunicacoes')
-        .then(data => transformarEmListaDeListas(data))
-        .catch(error => console.error('Error:', error))
-
-        popula_tbody_paginacao('paginacao','dadosCi',dados,botoes,1,20,false)
-
-    }
-
-    carregaTbody()
-
-    let btnBuscar = document.getElementById('buscar')
-    btnBuscar.addEventListener('click',()=>{
-      // Obter uma comunicação por ID
-      apiService.getById('comunicacao', document.getElementById('ciNum').value)
-        .then(data => populaCi(data))
-        .catch(error => console.error('Error:', error));
-    })
-
-    const verificaSalvar= (dados)=>{
-        console.log(dados)
-        carregaTbody()
-        limpaForm()
-    }
-
-    document.getElementById('excluir').addEventListener('click',()=>{
-        // Deletar uma comunicação
-        apiService.delete(document.getElementById('idCiNum').value, 1)
-            .then(data => console.log(data))
-            .catch(error => console.error('Error:', error));
-
-    })
-
-    let btnSalvar = document.getElementById('salvar')
-    btnSalvar.addEventListener('click',()=>{
-
-      let isca1 = document.getElementById('isca1')
-      let isca2 = document.getElementById('isca2')
-      let manifesto = document.getElementById('numManifesto')
-      let frete = document.getElementById('freteValor')
-      let destinatario = document.getElementById('destinatario')
-      let motorista = document.getElementById('motorista')
-      let dataCi = document.getElementById('dataCi')
-      let observacao = document.getElementById('observacao')
-      let rota = document.getElementById('rota')
-      // Criar uma nova comunicação
-      const newComunicacao = {
-          destinatario: destinatario.value,
-          manifesto_numero: manifesto.value,
-          motorista: motorista.value,
-          valor_frete: frete.value,
-          percurso: rota.value,
-          data: dataCi.value,
-          observacao: observacao.value,
-          isca_1: isca1.value,
-          isca_2: isca2.value
-      };
-    apiService.create('comunicacao', newComunicacao)
-        .then(data => verificaSalvar(data))
-        .catch(error => console.error('Error:', error));
-    })
-})
-
-
-
-
-
-
-
-// // Obter uma comunicação por ID
-// apiService.getById('comunicacao', 1)
-//     .then(data => console.log(data))
-//     .catch(error => console.error('Error:', error));
-
-
-
-// // Atualizar uma comunicação existente
-// const updatedComunicacao = {
-//     destinatario: "Maria",
-//     manifesto_numero: "12345",
-//     motorista: "José",
-//     valor_frete: 200.0,
-//     percurso: "Rio - São Paulo",
-//     data: "2024-05-21",
-//     observacao: "Entrega normal",
-//     isca_1: "Não",
-//     isca_2: "Sim"
-// };
-// apiService.update('comunicacao', 1, updatedComunicacao)
-//     .then(data => console.log(data))
-//     .catch(error => console.error('Error:', error));
-
-

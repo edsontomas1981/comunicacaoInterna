@@ -1,18 +1,46 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify,send_file, render_template
 from flask_cors import CORS
 import sqlite3
 import json
 from impressao_ci import imprimir_ci
 from iscas import localiza_iscas
+from funcoes_pega_coleta import webscrap_coletas,webscrap_coletas_lote,download_coletas
+from funcoes_baixa_cte import ctes_lote,processar_download_pdfs
+import os
+import shutil
+import zipfile
 
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
-DATABASE = 'bd_norte.db'
+# Permitir CORS para qualquer origem
+# CORS(app, resources={r"/*": {"origins": "*"}})
 
-@app.route('/')
+DATABASE = '/home/edson/Documentos/comunicacaoInterna/backend/bd_norte.db'
+
+@app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
+
+@app.route('/novoInicio', methods=['GET'])
+def newIndex():
+    return render_template('index.html')
+
+@app.route('/template', methods=['GET'])
+def template():
+    return render_template('template.html')
+
+@app.route('/envio_coletas', methods=['GET'])
+def envio_coletas():
+    return render_template('downloadsColetas.html')
+
+@app.route('/cidades_atendidas', methods=['GET'])
+def cidades_atendidas():
+    return render_template('relacaoCidadesAtendidas.html')
+
+@app.route('/iscas', methods=['GET'])
+def iscas():
+    return render_template('relatorioIscas.html')
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
@@ -36,7 +64,8 @@ def options_handler(path):
 
 @app.route('/report_iscas', methods=['GET', 'POST'])
 def report_iscas():
-    return jsonify(localiza_iscas())
+    relat_iscas = localiza_iscas()
+    return jsonify(relat_iscas)
 
 @app.route('/comunicacoes', methods=['GET'])
 def get_comunicacoes():
@@ -93,6 +122,23 @@ def create_comunicacao():
     conn.close()
     return jsonify({'status': 'Comunicação criada com sucesso'}), 201
 
+@app.route('/get_coletas', methods=['POST'])
+def get_coletas():
+    numero_pedidos = request.get_json()
+    USUARIO = 'edson@nor'
+    SENHA = 'analu1710'
+    webscrap_coletas(USUARIO,SENHA,numero_pedidos)
+    return jsonify({'status': 'Comunicação criada com sucesso'}), 201
+
+@app.route('/baixar_coletas_lote', methods=['POST'])
+def baixar_coletas_lote():
+    numero_pedidos = request.get_json()
+    USUARIO = 'edson@nor'
+    SENHA = 'analu1710'
+    zip_file = download_coletas(USUARIO,SENHA,numero_pedidos)
+    return send_file(zip_file, as_attachment=True)
+    # return jsonify({'status': 'Comunicação criada com sucesso'}), 201
+
 @app.route('/comunicacao/<int:ci_num>', methods=['PUT'])
 def update_comunicacao(ci_num):
     data = request.get_json()
@@ -121,5 +167,88 @@ def delete_comunicacao(ci_num):
     conn.close()
     return jsonify({'status': 'Comunicação deletada com sucesso'})
 
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route('/selecionar_ci', methods=['POST'])
+def select_ci():
+    """
+    Realiza uma busca flexível na tabela 'comunicacao_interna' com base em filtros opcionais.
+    
+    Filtros opcionais:
+    - 'percurso': Busca por trecho do percurso.
+    - 'observacao': Busca por trecho da observação.
+    - 'motorista': Busca por nome do motorista.
+    - 'isca': Busca por valores em 'isca_1' ou 'isca_2'.
+
+    Retorna:
+    - Lista de registros encontrados em formato JSON ou mensagens de erro apropriadas.
+    """
+    data = request.get_json()
+
+    data = data.get('dados')
+    
+    # Coleta os filtros enviados
+    percurso = data.get('percurso')
+    observacao = data.get('observacao')
+    motorista = data.get('motorista')
+    isca = data.get('isca')
+
+    # Monta a query base
+    query = "SELECT * FROM comunicacao_interna WHERE 1=1"
+    params = []
+
+    # Adiciona filtros opcionais, se fornecidos
+    if percurso:
+        query += " AND percurso LIKE ?"
+        params.append(f"%{percurso}%")
+    if observacao:
+        query += " AND observacao LIKE ?"
+        params.append(f"%{observacao}%")
+    if motorista:
+        query += " AND motorista LIKE ?"
+        params.append(f"%{motorista}%")
+    if isca:
+        # Busca por 'isca' em 'isca_1' ou 'isca_2'
+        query += " AND (isca_1 LIKE ? OR isca_2 LIKE ?)"
+        params.append(f"%{isca}%")
+        params.append(f"%{isca}%")
+
+    # Ordena os resultados em ordem decrescente com base na coluna 'ci_num'
+    query += " ORDER BY ci_num DESC"        
+
+    # Conexão e execução da consulta
+    conn = get_db_connection()
+    comunicacoes = conn.execute(query, params).fetchall()
+    conn.close()
+
+    # Verifica se encontrou registros
+    if not comunicacoes:
+        return jsonify({'error': 'Nenhuma comunicação encontrada'}), 404
+
+    # Retorna os resultados como uma lista de dicionários
+    resultados = [dict(comunicacao) for comunicacao in comunicacoes]
+    return jsonify(resultados)
+
+@app.route('/ctes', methods=['GET'])
+def home_ctes():
+    return render_template('baixarCtes.html')
+
+@app.route('/baixar_ctes_lote', methods=['POST'])
+def baixar_ctes_lote():
+    try:
+        # Defina as credenciais
+        USUARIO = 'edson@nor'
+        SENHA = 'analu1710'
+
+        # Obter o número dos CTEs (presumindo que seja enviado via JSON)
+        numero_ctes = request.get_json()
+
+        # Gerar o diretório de download
+        zip_filename = ctes_lote(USUARIO, SENHA, numero_ctes)
+
+        return send_file(zip_filename, as_attachment=True, download_name='ctes_lote.zip', mimetype='application/zip')
+
+    except Exception as e:
+        print(f"Erro ao baixar os CTEs: {e}")
+        return jsonify({'status': 'Erro durante o processo'}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000,debug=True)
